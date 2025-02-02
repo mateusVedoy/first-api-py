@@ -1,65 +1,55 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import random
+from Book import Book, BookDTO
+from BookRepository import BookRepository
+from Client import Client
 
 app = FastAPI()
 
+client = Client()
+repository = BookRepository(client)
 
-class BookDTO(BaseModel):
-    title: str
-    author: str
-    year: str
-    price: float
-
-
-class Book:
-    def __init__(self, title: str, author: str, year: str, price: float) -> None:
-        self.title = title
-        self.author = author
-        self.year = year
-        self.price = price
-
-    def __str__(self) -> str:
-        return f"title: {self.title}, author: {self.author}, year: {self.year}, price: {self.price}"
-
-    def set_id(self, id: int):
-        self.id = id
-
-
-database: Book = []
+# GET Request Method
 
 
 @app.get("/")
 def home():
     return {"Message": "Book api version 1.0"}
 
-
-@app.get("/books/all")
-def getAllBooks():
-    return database
+# GET Request Method
 
 
 @app.get("/book/{book_id}")
-def getBookById(book_id: int):
-    id = book_id - 1
-    book = database[id]
-    return book
+def getBookById(book_id: str):
+    book = repository.findBookById(book_id)
+    return {
+        "Message": "Book retrivied",
+        "content": [
+            book
+        ]
+    }
+
+# GET Request Method
+
+
+@app.get("/book")
+def getBookByTitleAndAuthor(title: str, author: str):
+    book: Book = repository.findBookByTitleAndAuthor(title, author)
+    return {
+        "Message": "Book retrivied",
+        "content": [
+            book
+        ]
+    }
+
+
+# POST Request Method
 
 
 @app.post("/books/add")
 def addBook(dto: BookDTO):
     book: Book = convertToBook(dto)
-    id = len(database) + 1
-    book.set_id(id)
-    database.append(book)
-    return {"Message": "Book added to library", "BookId": book.id}
-
-
-@app.delete("/books/remove/{book_id}")
-def removeBook(book_id: int):
-    id = book_id - 1
-    database.pop(id)
-    return {"Message": "Book removed from library"}
+    result = repository.addBook(book)
+    return {"Message": "Book added to library", "BookId": result}
 
 
 def convertToBook(dto: BookDTO) -> Book:
